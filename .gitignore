@@ -1,0 +1,7 @@
+# Slicer output; machine/profile specific and easy to regenerate.
+export/*.gcode
+
+# OpenSCAD temporary/autosave files.
+*.backup
+*.autosave
+*~
