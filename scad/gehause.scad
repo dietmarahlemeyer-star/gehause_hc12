@@ -36,6 +36,7 @@ aussparung_z_unten =
 
 deckel_blende_dicke = 3;
 deckel_blende_ueberdeckung = 3;
+deckel_blende_radius = 1.5;
 deckel_aussenkante_hoehe = 6;
 deckel_aussenkante_radius = 2.5;
 deckel_aussenkante_unten_radius = 1;
@@ -328,12 +329,13 @@ module deckel_aussparungsblende() {
     blende_z_unten = rechter_blenden_start_z;
     blende_hoehe = gehaeuse_hoehe - blende_z_unten;
 
-    translate([
+    deckel_blende_x_seite(
         gehaeuse_breite,
         aussparung_a - deckel_blende_ueberdeckung,
-        blende_z_unten - unterteil_hoehe
-    ])
-        cube([deckel_blende_dicke, blende_y, blende_hoehe]);
+        blende_z_unten - unterteil_hoehe,
+        blende_y,
+        blende_hoehe
+    );
 }
 
 module deckel_linke_seitenblende() {
@@ -356,16 +358,13 @@ module deckel_linke_seitenblende() {
     kabel_z_start = linker_blenden_start_z - unterteil_hoehe;
 
     difference() {
-        translate([
+        deckel_blende_x_seite(
             -deckel_blende_dicke,
             blende_y_start,
-            blende_z_start
-        ])
-            cube([
-                deckel_blende_dicke,
-                blende_y_end - blende_y_start,
-                blende_z
-            ]);
+            blende_z_start,
+            blende_y_end - blende_y_start,
+            blende_z
+        );
 
         deckel_kabel_freiraum(kabel_mitte_y, kabel_z_start, kabel_radius);
     }
@@ -380,18 +379,81 @@ module deckel_oberer_kabel_blende() {
     kabel_radius = oberer_kabel_spalt_durchmesser / 2;
 
     difference() {
-        translate([
+        deckel_blende_y_seite(
             blende_x_start,
             gehaeuse_tiefe,
-            blende_z_start
-        ])
-            cube([blende_x, deckel_blende_dicke, blende_hoehe]);
+            blende_z_start,
+            blende_x,
+            blende_hoehe
+        );
 
         deckel_oberer_kabel_freiraum(
             oberer_kabel_spalt_mitte_x,
             blende_z_start,
             kabel_radius
         );
+    }
+}
+
+module deckel_blende_x_seite(x_start, y_start, z_start, breite_y, hoehe_z) {
+    multmatrix([
+        [0, 0, 1, x_start],
+        [1, 0, 0, y_start],
+        [0, 1, 0, z_start],
+        [0, 0, 0, 1]
+    ])
+        linear_extrude(height = deckel_blende_dicke)
+            deckel_blende_profil_2d(breite_y, hoehe_z, -z_start);
+}
+
+module deckel_blende_y_seite(x_start, y_start, z_start, breite_x, hoehe_z) {
+    multmatrix([
+        [1, 0, 0, x_start],
+        [0, 0, 1, y_start],
+        [0, 1, 0, z_start],
+        [0, 0, 0, 1]
+    ])
+        linear_extrude(height = deckel_blende_dicke)
+            deckel_blende_profil_2d(breite_x, hoehe_z, -z_start);
+}
+
+module deckel_blende_profil_2d(breite, hoehe, deckel_unterseite_z) {
+    radius = min(deckel_blende_radius, breite / 2 - 0.01, deckel_unterseite_z);
+
+    union() {
+        translate([radius, 0])
+            square([breite - 2 * radius, hoehe]);
+
+        translate([0, radius])
+            square([breite, hoehe - radius]);
+
+        translate([radius, radius])
+            circle(r = radius);
+
+        translate([breite - radius, radius])
+            circle(r = radius);
+
+        deckel_blende_ansatzradius_2d(0, deckel_unterseite_z, -1);
+        deckel_blende_ansatzradius_2d(breite, deckel_unterseite_z, 1);
+    }
+}
+
+module deckel_blende_ansatzradius_2d(kante_x, deckel_unterseite_z, richtung) {
+    radius = min(deckel_blende_radius, deckel_unterseite_z);
+    ueberlappung = 0.05;
+
+    intersection() {
+        translate([
+            kante_x,
+            deckel_unterseite_z
+        ])
+            circle(r = radius + ueberlappung);
+
+        translate([
+            kante_x + min(-ueberlappung, richtung * radius),
+            deckel_unterseite_z - radius
+        ])
+            square([radius + ueberlappung, radius + ueberlappung]);
     }
 }
 
