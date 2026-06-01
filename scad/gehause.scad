@@ -18,7 +18,7 @@ platine_lochabstand_x = 63;
 platine_lochabstand_y = 40;
 platine_abstand_lange_kante = 6;
 platine_offset_x = 0;
-platine_offset_y = 0;
+platine_offset_y = 2;
 platine_dicke = 1.5;
 
 schraubdom_hoehe = 6;
@@ -37,10 +37,11 @@ aussparung_z_unten =
 deckel_blende_dicke = 3;
 deckel_blende_ueberdeckung = 3;
 deckel_blende_radius = 1.5;
+deckel_blende_ansatzradius = 3;
 deckel_aussenkante_hoehe = 6;
 deckel_aussenkante_radius = 2.5;
 deckel_aussenkante_unten_radius = 1;
-deckel_text = "pico2_drv8871";
+deckel_text = "pico3_drv8871";
 deckel_text_groesse = 7;
 deckel_text_tiefe = 0.6;
 kabel_freiraum_durchmesser = 5;
@@ -54,7 +55,11 @@ usb_blende_ueberdeckung = 4;
 
 platinen_spalt_breite = 7;
 platinen_spalt_abstand_schraubdom = 3;
-platinen_spalt_b = platine_abstand_lange_kante + platine_lochabstand_y - platinen_spalt_abstand_schraubdom;
+platinen_spalt_b =
+    platine_abstand_lange_kante
+    + platine_offset_y
+    + platine_lochabstand_y
+    - platinen_spalt_abstand_schraubdom;
 platinen_spalt_a = platinen_spalt_b - platinen_spalt_breite;
 
 oberer_kabel_spalt_durchmesser = 4;
@@ -419,6 +424,8 @@ module deckel_blende_y_seite(x_start, y_start, z_start, breite_x, hoehe_z) {
 
 module deckel_blende_profil_2d(breite, hoehe, deckel_unterseite_z) {
     radius = min(deckel_blende_radius, breite / 2 - 0.01, deckel_unterseite_z);
+    ansatz_z = max(radius, deckel_unterseite_z - deckel_aussenkante_hoehe);
+    ansatz_radius = min(deckel_blende_ansatzradius, ansatz_z - radius);
 
     union() {
         translate([radius, 0])
@@ -433,27 +440,33 @@ module deckel_blende_profil_2d(breite, hoehe, deckel_unterseite_z) {
         translate([breite - radius, radius])
             circle(r = radius);
 
-        deckel_blende_ansatzradius_2d(0, deckel_unterseite_z, -1);
-        deckel_blende_ansatzradius_2d(breite, deckel_unterseite_z, 1);
+        deckel_blende_ansatzradius_2d(0, ansatz_z, ansatz_radius, -1);
+        deckel_blende_ansatzradius_2d(breite, ansatz_z, ansatz_radius, 1);
     }
 }
 
-module deckel_blende_ansatzradius_2d(kante_x, deckel_unterseite_z, richtung) {
-    radius = min(deckel_blende_radius, deckel_unterseite_z);
-    ueberlappung = 0.05;
+module deckel_blende_ansatzradius_2d(kante_x, ansatz_z, radius, richtung) {
+    x_start =
+        richtung < 0
+        ? kante_x - radius
+        : kante_x;
+    kreis_mitte_x =
+        richtung < 0
+        ? kante_x - radius
+        : kante_x + radius;
 
-    intersection() {
+    difference() {
         translate([
-            kante_x,
-            deckel_unterseite_z
+            x_start,
+            ansatz_z - radius
         ])
-            circle(r = radius + ueberlappung);
+            square([radius, radius]);
 
         translate([
-            kante_x + min(-ueberlappung, richtung * radius),
-            deckel_unterseite_z - radius
+            kreis_mitte_x,
+            ansatz_z - radius
         ])
-            square([radius + ueberlappung, radius + ueberlappung]);
+            circle(r = radius);
     }
 }
 
